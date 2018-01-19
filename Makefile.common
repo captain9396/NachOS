@@ -44,9 +44,6 @@ THREAD_H =../threads/copyright.h\
 	../threads/synchlist.h\
 	../threads/system.h\
 	../threads/thread.h\
-	../threads/Abul.h\
-	../threads/producer.h\
-	../threads/consumer.h\
 	../threads/utility.h\
 	../machine/interrupt.h\
 	../machine/sysdep.h\
@@ -59,9 +56,6 @@ THREAD_C =../threads/main.cc\
 	../threads/synch.cc \
 	../threads/system.cc\
 	../threads/thread.cc\
-	../threads/Abul.cc\
-	../threads/producer.cc\
-	../threads/consumer.cc\
 	../threads/utility.cc\
 	../threads/threadtest.cc\
 	../machine/interrupt.cc\
@@ -72,7 +66,7 @@ THREAD_C =../threads/main.cc\
 
 THREAD_S = ../threads/switch.s
 
-THREAD_O =main.o scheduler.o synch.o Abul.o producer.o consumer.o system.o thread.o \
+THREAD_O =main.o scheduler.o synch.o system.o thread.o \
 	utility.o threadtest.o interrupt.o stats.o sysdep.o timer.o \
 	preemptive.o
 
