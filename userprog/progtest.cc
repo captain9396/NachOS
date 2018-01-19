@@ -19,6 +19,7 @@
 MemoryManager* memory_manager;
 Table* process_table;
 MyConsole* my_console;
+MemoryManager* swapMemoryManager;
 //----------------------------------------------------------------------
 // StartProcess
 // 	Run a user program.  Open the executable, load it into
@@ -35,16 +36,25 @@ StartProcess(const char *filename)
 	memory_manager = new MemoryManager(NumPhysPages);
 	my_console = new MyConsole();
 	process_table = new Table(NumPhysPages);
+	swapMemoryManager = new MemoryManager(256 * 128);
 	
 
     if (executable == NULL) {
 		printf("Unable to open file %s\n", filename);
 		return;
     }
-    space = new AddrSpace(executable);    
+    
+    
+    int space_id = process_table -> Alloc((void*) currentThread);
+    
+    if(space_id == -1){
+    	printf("process allocation failed\n");
+    	return;
+    }
+    space = new AddrSpace(executable, space_id);    
     currentThread->space = space;
 
-    delete executable;			// close file
+    
 
     space->InitRegisters();		// set the initial register values
     space->RestoreState();		// load page table register

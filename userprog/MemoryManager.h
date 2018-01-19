@@ -4,7 +4,10 @@
 #define MEMMANAGER_H
 
 #include "copyright.h"
+#include "translate.h"
 #include "bitmap.h"
+#include "SwapPage.h"
+#include <map>
 
 
 //-----------------------------------------------------------------------
@@ -18,10 +21,25 @@
 
 
 
+struct Frame{
+	int processno;
+	TranslationEntry* entry;
+	int time_stamp;
+
+	
+	bool operator<(const Frame& f)const{
+	return time_stamp < f.time_stamp;}
+};
+
+
+
+
 class MemoryManager{
-
+	
 	BitMap *page_tracker;
-
+	SwapPage* swap;
+	Frame* pages;
+	int total_page;
 
 	public:
 		
@@ -35,10 +53,16 @@ class MemoryManager{
 	
 	bool PageIsAllocated(int physPageNum);
 	
+	int Alloc(int processNo, TranslationEntry* entry);
+	int AllocByForce();
 	
 	
 	
 };
+
+
+
+
 
 
 #endif

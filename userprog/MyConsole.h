@@ -4,18 +4,20 @@
 #include "copyright.h"
 #include "console.h"
 
-class MyConsole{
+class MyConsole
+{
+private:
+    Console *console;
+public:
+    MyConsole();
 
-	Console* con;
-	
-	public:
-	
-	MyConsole();
-	void ConsoleAcquire();
-	void ConsoleRelease();
-	char ConsoleGetChar();
-	void ConsolePutChar(char c);
-	
+    void GetLock();
+
+    void ReleaseLock();
+
+    char GetChar();
+
+    void PutChar(char ch);
 };
 
 #endif // MY_CONSOLE_H

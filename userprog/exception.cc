@@ -30,6 +30,9 @@
 
 
 // Syscall function prototypes
+
+void PageFaultSyscall();
+
 void ExecSyscall();
 
 void ExitSyscall();
@@ -67,6 +70,7 @@ void UpdatePCReg(){
 
 
 extern MyConsole* my_console;
+extern MemoryManager* memory_manager;
 
 //----------------------------------------------------------------------
 // ExceptionHandler
@@ -97,37 +101,41 @@ ExceptionHandler(ExceptionType which)
     int type = machine->ReadRegister(2);
     
     
-
-    if ((which == SyscallException) && (type == SC_Halt)) {
-		DEBUG('a', "Shutdown, initiated by user program.\n");
-		printf("< HALT SYSTEM CALL >\n");	
-	   	interrupt->Halt();
-    }
-    else if((which == SyscallException) && (type == SC_Exit)){
-  
-    	printf("< EXIT SYSTEM CALL >\n");
-		ExitSyscall();
+	if((which == SyscallException)){
+   		if ((which == SyscallException) && (type == SC_Halt)) {
+			DEBUG('a', "Shutdown, initiated by user program.\n");
+			printf("< HALT SYSTEM CALL >\n");	
+		   	interrupt->Halt();
+		}
+		else if((which == SyscallException) && (type == SC_Exit)){
+	  
+			printf("< EXIT SYSTEM CALL >\n");
+			ExitSyscall();
+		}
+		
+		else if((which == SyscallException) && (type == SC_Exec)){
+		 	printf("-----------------------------------\n");
+			printf("|       EXECUTE SYSTEM CALL       |\n");
+			printf("-----------------------------------\n\n\n");
+			
+			ExecSyscall();
+		}
+		else if((which == SyscallException) && (type == SC_Read)){
+			ReadSyscall();
+		}
+		else if((which == SyscallException) && (type == SC_Write)){
+			WriteSyscall();
+		}
+		UpdatePCReg();
     }
     
-    else if((which == SyscallException) && (type == SC_Exec)){
-	 	printf("-----------------------------------\n");
-		printf("|       EXECUTE SYSTEM CALL       |\n");
-		printf("-----------------------------------\n\n\n");
-    	
-		ExecSyscall();
-    }
-    else if((which == SyscallException) && (type == SC_Read)){
-    	printf("READ SYSTEM CALL\n");
-   	   	//interrupt->Halt();
-    }
-    else if((which == SyscallException) && (type == SC_Write)){
-    	printf("WRITE SYSTEM CALL\n");
-   	   	//interrupt->Halt();
-    }
-     else if(which == PageFaultException){
-
-    	printf("pagefault\n");
-    	ExitSyscall();
+    
+    
+    
+    
+ 	else if(which == PageFaultException){
+		PageFaultSyscall();
+    	//ExitSyscall();
     }
     
     else if(which == ReadOnlyException){
@@ -137,11 +145,6 @@ ExceptionHandler(ExceptionType which)
     
     else if(which == BusErrorException){
     	printf("berror\n");
-    	ExitSyscall();
-    }
-    
-    else if(which == AddressErrorException){
-    	printf("adderr\n");
     	ExitSyscall();
     }
     
@@ -161,7 +164,7 @@ ExceptionHandler(ExceptionType which)
     }
     
     else{
-		printf("Unexpected user mode exception %d %d\n", which, type);
+		//printf("Unexpected user mode exception %d %d\n", which, type);
 		ExitSyscall();
 	//	ASSERT(false);	    
     }
@@ -170,7 +173,7 @@ ExceptionHandler(ExceptionType which)
     
     
     // update PC
-    UpdatePCReg();
+
 }
 
 
@@ -229,10 +232,15 @@ void ExecSyscall(){
     // start a new thread executing the specified program
     //printf(" HERE -- > %s\n", currentThread->getName());
 	Thread* new_thread = new Thread(name);
+    process_id = process_table -> Alloc((void*) new_thread);
 	
 
+	if(process_id == -1){
+		printf("process allocation failed\n");
+		return ;
+	}
 	// create a new pageTable i.e. create a new process address space for the specified process
-    AddrSpace* new_process_space = new AddrSpace(file);
+    AddrSpace* new_process_space = new AddrSpace(file, process_id);
 	    
     // set the addresspace of the running thread 
     // equal to the address space of the specified process
@@ -240,7 +248,7 @@ void ExecSyscall(){
    // new_thread -> space -> InitRegisters();
    // new_thread -> space -> RestoreState();
     
-    process_id = process_table -> Alloc((void*) new_thread);
+
     
     
     // if no allocation in process table is possible then
@@ -276,7 +284,7 @@ void ExitSyscall(){
 	
 	int position_in_process_table;
 	int arg1 = machine->ReadRegister(4);
-	printf("===============> EXIT ARGUMENT VALUE =  %d <================\n\n", arg1);
+	//printf("===============> EXIT ARGUMENT VALUE =  %d <================\n\n", arg1);
 
    	
    	
@@ -289,8 +297,9 @@ void ExitSyscall(){
 	
 
 	int total_process = process_table -> GetTotalProcess();
+	printf("$$$$$$$$$ ECHO TOTAL_PROCESSES = %d\n", total_process);
 	
-    if(total_process > 0){
+    if(total_process > 1){
     	process_table -> Release(currentThread -> getId());
     	currentThread -> Finish();
 	}
@@ -307,43 +316,34 @@ void ExitSyscall(){
 void ReadSyscall(){
 
 
-	/*printf("IN READ\n\n");
-	my_console -> ConsoleAcquire();
-	
-	int address_buffer = machine->ReadRegister(4);
-	int string_length = machine->ReadRegister(5);
-	
-	
-	char* string; 
-	int i = 0, process_id;
+	unsigned int addr = machine->ReadRegister(4);
+    unsigned int size = machine->ReadRegister(5);
 
-//	bool ReadMem(int addr, int size, int* value);
-// Read or write "size" bytes of virtual memory (at addr).  Return false if a correct translation couldn't be found.
+    my_console->GetLock();
 
-	string = new char[string_length];
+    char* buffer = new char[size];
 
-	for(i = 0; i < string_length; i++){
-		string[i] = my_console -> ConsoleGetChar();
-	}
-	string[i] = '\0';
-	
-	printf("READ STRING : %s\n" , string);
-	
-	for(i = 0 ; string[i]; i++){
-		machine -> WriteMem(address_buffer, 1 , (int)string[i]);
-	}
-	
-	
-	
-	machine -> WriteRegister(2, string_length);
-	
-	
-	
-	
-	
-	bzero(string, string_length * sizeof(char));
-	my_console -> ConsoleRelease();
-	return ;*/
+    for(int i = 0; i < size; i++)
+    {
+        buffer[i] = my_console->GetChar();
+    }
+    buffer[size] = '\0';
+    for(int i = 0; i < size; i++)
+    {
+        machine->WriteMem(addr + i,1, (int)buffer[i]);
+    }
+
+    DEBUG('z', "Size of string = %d\n", size);
+    machine->WriteRegister(2,size);
+
+
+    DEBUG('z', "got :  %s\n", buffer);
+
+    bzero(buffer, sizeof(char) * size);
+
+    my_console->ReleaseLock();
+
+    return;
 }
 
 
@@ -351,22 +351,21 @@ void ReadSyscall(){
 
 
 void WriteSyscall(){
-	/*my_console -> ConsoleAcquire();
-	int i, read_value;
-	int address_buffer = machine->ReadRegister(4);
-	int string_length = machine->ReadRegister(5);
-	
-	
-	
-	for(i = 0 ; i < string_length; i++){
-		machine -> ReadMem(address_buffer + i, 1, &read_value);	
-		my_console -> ConsolePutChar(char(read_value));
-	}
-	
-	
-	my_console -> ConsolePutChar('\n');
+	unsigned int addr = machine->ReadRegister(4);	
+    unsigned int size = machine->ReadRegister(5);
 
-	my_console -> ConsoleRelease();*/
+    my_console->GetLock();
+    for(int i = 0; i < size; i++)
+    {
+        int c;
+        machine->ReadMem(addr + i, 1, &c);
+        my_console->PutChar((char)c);
+    }
+    my_console->PutChar('\n');
+
+    my_console->ReleaseLock();
+
+    return;
 }
 
 
@@ -379,6 +378,36 @@ void HaltSyscall(){
     return;
     
 }
+
+
+
+void PageFaultSyscall(){
+	printf("A PAGEFAULT OCCURRED\n");
+	
+	int addr = machine -> ReadRegister(39); // contains bad register
+	printf("!!!ECHO BAD REGISTER = %d\n", addr);
+	
+	int vpn = addr / PageSize;
+	
+	int physicalPageNo;
+	
+	if(memory_manager -> GetUnallocatedPages()){
+		//physicalPageNo = memory_manager -> AllocPage();  // normal case task 1
+		physicalPageNo = memory_manager -> Alloc(currentThread->getId(), &(machine->pageTable[vpn])); // RANDOM REP
+		
+		
+	}else{
+		// will be handled later
+		physicalPageNo = memory_manager -> AllocByForce();
+		
+		//do swapfile case later
+	}
+	
+	printf("ECHO physicalPageNo %d\n", physicalPageNo);
+	currentThread -> space -> loadIntoFreePage(addr, physicalPageNo);
+	stats -> numPageFaults++;	
+}
+
 
 
 

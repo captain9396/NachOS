@@ -14,10 +14,7 @@ main()
 	
 //	Exit(123);
 	result = Exec("../test/matmult");
-	result = Exec("../test/array");
-	result = Exec("../test/array");
-	result = Exec("../test/array");
-	result = Exec("../test/array");
+//	Exit(11);
 }
 	
 	

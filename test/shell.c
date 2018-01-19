@@ -25,11 +25,13 @@ main()
 	} while( buffer[i++] != '\n' );
 
 	buffer[--i] = '\0';
-/*
+
 	if( i > 0 ) {
 		newProc = Exec(buffer);
+		//if(newProc != -1){
 		Join(newProc);
-	}*/
+		//}
+	}
     }
 }
 

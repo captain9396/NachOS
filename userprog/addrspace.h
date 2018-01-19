@@ -17,12 +17,14 @@
 #include "filesys.h"
 #include "MemoryManager.h"
 #include "Table.h"
+#include "noff.h"
+#include "SwapPage.h"
 
 #define UserStackSize		1024 	// increase this as necessary!
 
 class AddrSpace {
   public:
-    AddrSpace(OpenFile *executable);	// Create an address space,
+    AddrSpace(OpenFile *executable, int space_id);	// Create an address space,
 					// initializing it with the program
 					// stored in the file "executable"
     ~AddrSpace();			// De-allocate an address space
@@ -35,14 +37,30 @@ class AddrSpace {
     void ReleasePages();
     int GetId();
     void SetId(int id);
+    void loadIntoFreePage(int addr, int physicalPageNo);
+    void prepareRequestedPage(int pgNo);
+    void saveIntoSwapSpace(int vpn);
+	void loadFromSwapSpace(int vpn);
+	bool isSwapPageExists(int vpn);
 
   private:
-    TranslationEntry *pageTable;	// Assume linear page table translation
+  
+  	TranslationEntry *pageTable;	// Assume linear page table translation
 					// for now!
+					
+	
+    
     unsigned int numPages;		// Number of pages in the virtual 
 					// address space
 					
+	OpenFile* executable;
+	int space_id;
+	
+	SwapPage* swapPage;
+					
 	int t_id;
+	NoffHeader* my_noffH;
+	int Size;
 };
 
 #endif // ADDRSPACE_H

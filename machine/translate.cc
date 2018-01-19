@@ -38,6 +38,9 @@
 // simulated machine's format of little endian.  These end up
 // being NOPs when the host machine is also little endian (DEC and Intel).
 
+
+int globalTimer = 0;
+
 unsigned int
 WordToHost(unsigned int word) {
 #ifdef HOST_IS_BIG_ENDIAN
@@ -190,6 +193,9 @@ Machine::Translate(int virtAddr, int* physAddr, int size, bool writing)
     unsigned int vpn, offset;
     TranslationEntry *entry;
     unsigned int pageFrame;
+    
+   
+   // printf("GLOBAL %d : TRANSLATE CALLED ---> VIRTUAL = %d -- PHYSADDR = %d -- \n", globalTimer++, virtAddr, *physAddr);
 
     DEBUG('a', "\tTranslate 0x%x, %s: ", virtAddr, writing ? "write" : "read");
 
@@ -207,6 +213,14 @@ Machine::Translate(int virtAddr, int* physAddr, int size, bool writing)
 // from the virtual address
     vpn = (unsigned) virtAddr / PageSize;
     offset = (unsigned) virtAddr % PageSize;
+    
+    
+    // adding timestamp
+    pageTable[vpn].time = ++globalTimer;
+    
+    
+    
+    
     
     if (tlb == NULL) {		// => page table => vpn is index into table
 	if (vpn >= pageTableSize) {

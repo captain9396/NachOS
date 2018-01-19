@@ -2,50 +2,45 @@
 #include "MyConsole.h"
 #include "synch.h"
 
+Lock* consoleLock    = new Lock("Console Lock");
+Semaphore* readAvail = new Semaphore("read avail", 0);
+Semaphore* writeDone = new Semaphore("write done", 0);
 
-
-Lock* con_lock;
-Lock* read_lock;
-Lock* write_lock;
-
-void readAvail(void* arg);
-void writeDone(void* arg);
-
-
-MyConsole :: MyConsole(){
-	// instantiate locks
-	con_lock = new Lock("console_lock");
-	read_lock = new Lock("read_lock");
-	write_lock = new Lock("write_lock");
-	
-	// instantiate console object
-	con = new Console(NULL, NULL, readAvail, writeDone, 0);
-	
+void ReadAvail(void* arg)
+{
+    readAvail->V();
 }
-void MyConsole :: ConsoleAcquire(){
-	con_lock -> Acquire();
-}
-void MyConsole :: ConsoleRelease(){
-	con_lock -> Release();
-}
-char MyConsole :: ConsoleGetChar(){
-	read_lock -> Acquire();
-	char in = con -> GetChar();
-	return in;
-}
-void MyConsole :: ConsolePutChar(char c){
-	con -> PutChar(c);
-	write_lock -> Acquire();
+void WriteDone(void* arg)
+{
+    writeDone->V();
 }
 
 
-
-
-
-void readAvail(void* arg){
-	read_lock -> Release();
-}
-void writeDone(void* arg){
-	write_lock -> Release();
+MyConsole::MyConsole()
+{
+    //console = new Console(in.txt, out.txt, readAvail, writeDone, 0);
+    console = new Console(NULL, NULL, ReadAvail, WriteDone, 0);
+    // NULL, NULL ==> stdin, stdout
 }
 
+void MyConsole::GetLock()
+{
+    consoleLock->Acquire();
+}
+
+void MyConsole::ReleaseLock()
+{
+    consoleLock->Release();
+}
+
+char MyConsole::GetChar()
+{
+    readAvail->P();
+    return console->GetChar();
+}
+
+void MyConsole::PutChar(char ch)
+{
+    console->PutChar(ch);
+    writeDone->P();
+}
